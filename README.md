@@ -1,35 +1,31 @@
-# RAMP: Reliable One-Step Trajectory Forecasting With Missingness-Aware Uncertainty Under Partial Observation
+# RAMP: Reliable One-Step Trajectory Forecasting With Missingness-Aware Uncertainty
 
-Official implementation of **RAMP**, a reliability-oriented one-step trajectory forecasting framework under partial observation.
+This repository provides the implementation of **RAMP**, a reliability-oriented one-step trajectory forecasting framework under partial observation.
 
-RAMP studies a practical setting where the observed trajectory history may be incomplete due to occlusion, missed detections, tracking failures, missing frames, or limited sensing range. The method improves one-step multi-modal forecasting by jointly modeling final-mode ranking, state-wise uncertainty, and missingness-aware uncertainty.
+RAMP targets a practical forecasting setting where the observed history may be incomplete due to occlusion, missed detections, tracking interruptions, missing frames, or limited sensing range. Instead of only generating a set of plausible future trajectories, RAMP improves the reliability of the final selected prediction by combining mode ranking, state-wise uncertainty estimation, and missingness-aware uncertainty modeling.
 
-> **Reliable One-Step Trajectory Forecasting With Missingness-Aware Uncertainty Under Partial Observation**
-> Wenji Wu and Zhuo Wang
-> College of Shipbuilding Engineering, Harbin Engineering University
+## Highlights
 
-## Overview
+* **One-step multi-modal forecasting**: generates multiple future trajectory modes in a single forward pass.
+* **Native mode ranking**: scores generated candidate modes and selects a reliable Top-1 prediction.
+* **State-wise uncertainty estimation**: predicts future-step uncertainty together with trajectory candidates.
+* **Missingness-aware uncertainty**: injects observation-completeness features into the uncertainty branch.
+* **Partial-observation evaluation**: supports clean, temporal-dropout, and Gaussian-perturbation settings.
+* **Controlled metrics**: reports oracle quality, Top-1 quality, ranking consistency, Top-1–oracle gap, and uncertainty reliability.
 
-Modern multi-modal trajectory predictors can generate multiple plausible future trajectories. However, in practical deployment, downstream modules often require a reliable final prediction rather than an unordered candidate set. Under partial observation, this final selection becomes harder, and the model should also express lower confidence when the observed history is incomplete.
+## Method Overview
 
-RAMP addresses this problem with three components:
+Given a partially observed trajectory history and its observation mask, RAMP first generates a set of candidate futures with a one-step forecasting backbone. It then evaluates the reliability of each candidate through a ranking branch and estimates state-wise uncertainty through an uncertainty branch. Missingness features derived from the observation mask are injected into the uncertainty path so that the predicted confidence can respond to incomplete histories.
 
-* **Native mode ranking** for selecting a reliable Top-1 future mode from generated candidates.
-* **State-wise uncertainty estimation** for predicting trajectory-level reliability jointly with future motion.
-* **Missingness-aware uncertainty modeling** for adjusting confidence according to observation completeness.
+The released code supports the following model variants:
 
-The framework preserves the efficiency of one-step forecasting while improving Top-1 prediction quality, ranking consistency, and uncertainty reliability under incomplete observations.
-
-## Main Components
-
-| Component                     | Description                                                                    | Main files                                         |
-| ----------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------- |
-| One-step forecasting backbone | Generates multiple future modes in a single forward pass                       | `models/backbone.py`, `models/backbone_eth_ucy.py` |
-| Ranking branch                | Scores candidate modes and selects the final Top-1 prediction                  | `models/backbone*.py`, `models/imle.py`            |
-| Uncertainty head              | Predicts state-wise log-variance for generated modes                           | `models/backbone*.py`                              |
-| Missingness-aware uncertainty | Injects observation-completeness features into the uncertainty path            | `models/backbone*.py`                              |
-| Training objective            | Combines trajectory, ranking, uncertainty, and optional monotonic losses       | `models/imle.py`                                   |
-| Evaluation metrics            | Computes oracle, Top-1, gap, Hit@k, Spearman, Coverage@90, and related metrics | `analyze_*_student_native_score_diag.py`           |
+| Variant   | Description                                                      |
+| --------- | ---------------------------------------------------------------- |
+| `MoFlow`  | One-step student baseline                                        |
+| `RAMP-R`  | One-step student with native mode ranking                        |
+| `RAMP-RU` | Ranking + state-wise uncertainty                                 |
+| `RAMP`    | Ranking + state-wise uncertainty + missingness-aware uncertainty |
+| `RAMP-M`  | Conservative variant with monotonic missingness regularization   |
 
 ## Repository Structure
 
@@ -38,41 +34,77 @@ RAMP/
   README.md
   LICENSE
   requirements.txt
+
   cfg/
     eth_ucy/
+      cor_fm.yml
+      imle.yml
     sdd/
+      cor_fm.yml
+      imle.yml
     nba/
+      cor_fm.yml
+      imle.yml
+
   data/
-    README.md
     dataloader_eth_ucy.py
     dataloader_sdd.py
     dataloader_nba.py
     store_pickle_eth_files.py
+
   models/
     backbone.py
     backbone_eth_ucy.py
     flow_matching.py
     imle.py
+    context_encoder/
+    motion_decoder/
+    utils/
+
   trainer/
     denoising_model_trainers.py
     imle_trainers.py
+
   utils/
+    config.py
+    normalization.py
+    utils.py
+
   scripts/
-    train/
-    eval/
-    robustness/
-    visualization/
+    train_ep150_internal_variants.py
+    rerun_ep150_internal_variants_eth_ucy_full_metrics.py
+    rerun_ep150_internal_variants_sdd_full_metrics.py
+    rerun_ep150_internal_variants_nba_full_metrics.py
+    benchmark_efficiency_strict.py
+    make_qualitative_figures.py
+    make_eth_ucy_5subset_avg_risk_coverage.py
+
   docs/
-    PAPER_TO_CODE.md
     DATA_PREPARATION.md
+    PAPER_TO_CODE.md
     REPRODUCE_TABLES.md
     THIRD_PARTY.md
-  examples/
 ```
+
+## Code Map
+
+| Paper component                         | Main implementation                                |
+| --------------------------------------- | -------------------------------------------------- |
+| One-step forecasting backbone           | `models/backbone.py`, `models/backbone_eth_ucy.py` |
+| Candidate mode generation               | `models/backbone.py`, `models/backbone_eth_ucy.py` |
+| Native mode ranking branch              | `models/backbone.py`, `models/backbone_eth_ucy.py` |
+| Ranking loss                            | `models/imle.py`                                   |
+| State-wise uncertainty head             | `models/backbone.py`, `models/backbone_eth_ucy.py` |
+| Heteroscedastic uncertainty loss        | `models/imle.py`                                   |
+| Missingness feature construction        | `models/backbone.py`, `models/backbone_eth_ucy.py` |
+| Missingness-aware uncertainty injection | `models/backbone.py`, `models/backbone_eth_ucy.py` |
+| Monotonic missingness regularization    | `models/imle.py`                                   |
+| Clean and corrupted evaluation          | `analyze_*_student_native_score_diag.py`           |
+| Robustness evaluation                   | `run_*_robustness_suite_student_native.py`         |
 
 ## Installation
 
-Create a conda environment:
+Create a Python environment:
 
 ```bash
 conda create -n ramp python=3.9 -y
@@ -85,103 +117,241 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-The code has been tested with PyTorch and CUDA-enabled NVIDIA GPUs. Please adjust the PyTorch version according to your CUDA environment.
+The default dependency list includes PyTorch, NumPy, SciPy, PyYAML, Matplotlib, tqdm, einops, easydict, accelerate, ema-pytorch, and tensorboardX. Please install a PyTorch build that matches your CUDA environment.
 
-## Dataset Preparation
+## Data Preparation
 
-RAMP is evaluated on:
+Raw datasets are not included in this repository. Please download the datasets from their official sources and place or preprocess them following `docs/DATA_PREPARATION.md`.
 
-* ETH/UCY
-* Stanford Drone Dataset (SDD)
-* SportVU NBA
-
-Raw datasets are not included in this repository. Please download them from their official sources and prepare them according to `docs/DATA_PREPARATION.md`.
-
-A typical directory layout is:
+The default data layout is:
 
 ```text
-datasets/
+data/
   eth_ucy/
   sdd/
   nba/
 ```
 
-The dataset root can be specified by command-line arguments or configuration files.
+The one-step student training scripts may require preprocessed distillation samples under the dataset directory, for example:
+
+```text
+data/
+  eth_ucy/
+    imle/
+  sdd/
+    imle/
+  nba/
+    imle/
+```
+
+Dataset paths can be specified through command-line arguments such as `--data_dir`.
 
 ## Training
 
-### Train the one-step baseline
+### 1. Train a Flow Matching teacher
+
+ETH/UCY requires a subset name:
 
 ```bash
-python scripts/train/train_student.py \
-  --config cfg/eth_ucy/moflow.yaml \
-  --dataset eth_ucy \
-  --output_dir results/eth_ucy/moflow
+python fm_eth.py \
+  --subset eth \
+  --data_dir ./data/eth_ucy \
+  --cfg cfg/eth_ucy/cor_fm.yml \
+  --exp eth_teacher
 ```
 
-### Train RAMP
+For SDD:
 
 ```bash
-python scripts/train/train_student.py \
-  --config cfg/eth_ucy/ramp.yaml \
-  --dataset eth_ucy \
-  --output_dir results/eth_ucy/ramp
+python fm_sdd.py \
+  --data_dir ./data/sdd \
+  --cfg cfg/sdd/cor_fm.yml \
+  --exp sdd_teacher
 ```
 
-### Train internal variants
+For NBA:
 
 ```bash
-python scripts/train/train_internal_variants.py \
-  --dataset eth_ucy \
-  --variants moflow ramp_r ramp_ru ramp ramp_m \
+python fm_nba.py \
+  --data_dir ./data/nba \
+  --cfg cfg/nba/cor_fm.yml \
+  --exp nba_teacher
+```
+
+### 2. Train a one-step MoFlow student baseline
+
+ETH/UCY:
+
+```bash
+python imle_eth.py \
+  --subset eth \
+  --data_dir ./data/eth_ucy \
+  --cfg cfg/eth_ucy/imle.yml \
+  --exp eth_moflow
+```
+
+SDD:
+
+```bash
+python imle_sdd.py \
+  --data_dir ./data/sdd \
+  --cfg cfg/sdd/imle.yml \
+  --exp sdd_moflow
+```
+
+NBA:
+
+```bash
+python imle_nba.py \
+  --data_dir ./data/nba \
+  --cfg cfg/nba/imle.yml \
+  --exp nba_moflow
+```
+
+### 3. Train RAMP
+
+The final RAMP model uses ranking, uncertainty estimation, training-time missing-observation augmentation, and missingness-aware uncertainty:
+
+```bash
+python imle_eth.py \
+  --subset eth \
+  --data_dir ./data/eth_ucy \
+  --cfg cfg/eth_ucy/imle.yml \
+  --exp eth_ramp \
+  --loss_rank_weight 0.05 \
+  --loss_rank_temp 0.5 \
+  --loss_unc_weight 0.02 \
+  --miss_aug_prob 0.5 \
+  --miss_drop_ratio_min 0.2 \
+  --miss_drop_ratio_max 0.4 \
+  --use_missingness_unc
+```
+
+For SDD and NBA, use `imle_sdd.py` or `imle_nba.py` with the same RAMP-specific options.
+
+### 4. Train internal variants
+
+The following launcher trains the internal RAMP variants used for component analysis:
+
+```bash
+python scripts/train_ep150_internal_variants.py \
+  --datasets eth_ucy,nba,sdd \
+  --variants ramp_r,ramp_ru,ramp_m \
   --epochs 150 \
-  --output_dir results/eth_ucy/internal_variants
+  --run_eval 0
 ```
 
-The internal variants are:
+The variant options correspond to:
 
-| Name      | Description                                |
-| --------- | ------------------------------------------ |
-| `MoFlow`  | One-step student baseline                  |
-| `RAMP-R`  | Native ranking only                        |
-| `RAMP-RU` | Ranking + uncertainty                      |
-| `RAMP`    | Final missingness-aware uncertainty model  |
-| `RAMP-M`  | Conservative monotonic uncertainty variant |
+| Variant   | Main options                                                           |
+| --------- | ---------------------------------------------------------------------- |
+| `RAMP-R`  | `--loss_rank_weight 0.05 --loss_rank_temp 0.5`                         |
+| `RAMP-RU` | `RAMP-R` + `--loss_unc_weight 0.02`                                    |
+| `RAMP`    | `RAMP-RU` + missing-observation augmentation + `--use_missingness_unc` |
+| `RAMP-M`  | `RAMP` + `--loss_unc_mono_weight 0.01`                                 |
+
+Some scripts retain legacy argument names for checkpoint compatibility, but the public method names are `RAMP-R`, `RAMP-RU`, `RAMP`, and `RAMP-M`.
 
 ## Evaluation
 
-### Evaluate on clean data
+### Clean evaluation
+
+ETH/UCY:
 
 ```bash
-python scripts/eval/eval_eth_ucy.py \
-  --config cfg/eth_ucy/ramp.yaml \
-  --checkpoint results/eth_ucy/ramp/best.pt \
-  --setting clean
+python analyze_eth_ucy_clean_fulltest_student_native_score_diag.py \
+  --student_ckpt_path <path_to_checkpoint> \
+  --student_cfg auto \
+  --subset eth \
+  --data_dir ./data/eth_ucy \
+  --out_dir outputs/eth_clean
 ```
 
-### Evaluate under temporal dropout
+SDD:
 
 ```bash
-python scripts/eval/eval_eth_ucy.py \
-  --config cfg/eth_ucy/ramp.yaml \
-  --checkpoint results/eth_ucy/ramp/best.pt \
-  --setting dropout \
-  --dropout_ratio 0.4
+python analyze_sdd_clean_fulltest_student_native_score_diag.py \
+  --student_ckpt_path <path_to_checkpoint> \
+  --student_cfg auto \
+  --data_dir ./data/sdd \
+  --out_dir outputs/sdd_clean
 ```
 
-### Evaluate under Gaussian perturbation
+NBA:
 
 ```bash
-python scripts/eval/eval_eth_ucy.py \
-  --config cfg/eth_ucy/ramp.yaml \
-  --checkpoint results/eth_ucy/ramp/best.pt \
-  --setting gaussian \
-  --noise_std 0.05
+python analyze_nba_clean_fulltest_student_native_score_diag.py \
+  --student_ckpt_path <path_to_checkpoint> \
+  --student_cfg auto \
+  --data_dir ./data/nba \
+  --out_dir outputs/nba_clean
+```
+
+### Temporal-dropout evaluation
+
+```bash
+python analyze_eth_ucy_clean_fulltest_student_native_score_diag.py \
+  --student_ckpt_path <path_to_checkpoint> \
+  --student_cfg auto \
+  --subset eth \
+  --data_dir ./data/eth_ucy \
+  --out_dir outputs/eth_dropout_r04 \
+  --perturb dropout \
+  --drop_ratio 0.4
+```
+
+### Gaussian-perturbation evaluation
+
+```bash
+python analyze_eth_ucy_clean_fulltest_student_native_score_diag.py \
+  --student_ckpt_path <path_to_checkpoint> \
+  --student_cfg auto \
+  --subset eth \
+  --data_dir ./data/eth_ucy \
+  --out_dir outputs/eth_gaussian_005 \
+  --perturb gaussian \
+  --gaussian_sigma 0.05
+```
+
+The same perturbation arguments are supported by the SDD and NBA analysis scripts.
+
+## Robustness Suites
+
+ETH/UCY:
+
+```bash
+python run_eth_ucy_robustness_suite_student_native.py \
+  --subset eth \
+  --student_ckpt_path <path_to_checkpoint> \
+  --student_cfg auto \
+  --data_dir ./data/eth_ucy \
+  --base_out_dir outputs/eth_robustness
+```
+
+SDD:
+
+```bash
+python run_sdd_robustness_suite_student_native.py \
+  --variant d1_full \
+  --student_ckpt_path <path_to_checkpoint> \
+  --student_cfg auto \
+  --data_dir ./data/sdd \
+  --base_out_dir outputs/sdd_robustness
+```
+
+NBA:
+
+```bash
+python run_nba_robustness_suite_student_native.py \
+  --student_ckpt_path <path_to_checkpoint> \
+  --student_cfg auto \
+  --data_dir ./data/nba \
+  --base_out_dir outputs/nba_robustness
 ```
 
 ## Metrics
 
-The evaluation reports three groups of metrics.
+The evaluation scripts report three groups of metrics.
 
 ### Trajectory quality
 
@@ -203,86 +373,108 @@ The evaluation reports three groups of metrics.
 
 ## Reproducing Main Tables
 
-Example command:
+The following scripts collect full metrics for internal-variant experiments:
 
 ```bash
-python scripts/eval/summarize_results.py \
-  --input_dir results/eth_ucy/internal_variants \
-  --output_dir outputs/tables/eth_ucy
+python scripts/rerun_ep150_internal_variants_eth_ucy_full_metrics.py \
+  --results_root runs_eth_ucy/imle \
+  --data_dir ./data/eth_ucy
 ```
 
-More detailed commands for reproducing the main tables are provided in:
-
-```text
-docs/REPRODUCE_TABLES.md
+```bash
+python scripts/rerun_ep150_internal_variants_sdd_full_metrics.py \
+  --results_root runs_sdd/imle \
+  --data_dir ./data/sdd
 ```
+
+```bash
+python scripts/rerun_ep150_internal_variants_nba_full_metrics.py \
+  --results_root runs_nba/imle \
+  --data_dir ./data/nba
+```
+
+These scripts expect trained run directories under the corresponding `runs_*` folders. For more details, see `docs/REPRODUCE_TABLES.md`.
+
+## Efficiency Benchmark
+
+```bash
+python scripts/benchmark_efficiency_strict.py \
+  --device cuda \
+  --amp fp16 \
+  --warmup 50 \
+  --iters 200 \
+  --data_root ./data \
+  --out_dir outputs/efficiency
+```
+
+The benchmark script expects the checkpoint paths configured inside the script or supplied after adapting the default model specifications.
 
 ## Visualization
 
-Qualitative trajectory visualization:
+The qualitative visualization script consumes summary files generated by the analysis scripts:
 
 ```bash
-python scripts/visualization/plot_qualitative.py \
-  --config cfg/eth_ucy/ramp.yaml \
-  --checkpoint results/eth_ucy/ramp/best.pt \
-  --output_dir outputs/figures/qualitative
+python scripts/make_qualitative_figures.py \
+  --eth_baseline_summary <baseline_summary_json> \
+  --eth_ramp_summary <ramp_summary_json> \
+  --out_dir outputs/figures
 ```
 
-Uncertainty visualization:
+Risk-coverage visualization for ETH/UCY can be generated with:
 
 ```bash
-python scripts/visualization/plot_uncertainty.py \
-  --config cfg/eth_ucy/ramp.yaml \
-  --checkpoint results/eth_ucy/ramp/best.pt \
-  --output_dir outputs/figures/uncertainty
+python scripts/make_eth_ucy_5subset_avg_risk_coverage.py \
+  --help
 ```
 
-Top-1–oracle gap visualization:
+## Outputs
 
-```bash
-python scripts/visualization/plot_top1_oracle_gap.py \
-  --input_dir results/eth_ucy/internal_variants \
-  --output_dir outputs/figures/gap
+Typical training outputs are stored under the dataset-specific run directories:
+
+```text
+runs_eth_ucy/
+runs_sdd/
+runs_nba/
 ```
+
+Typical evaluation outputs include:
+
+```text
+summary.json
+summary.md
+per_sample.csv
+```
+
+Generated outputs, checkpoints, cached samples, and datasets should not be committed to the repository.
 
 ## Pretrained Models
 
-Pretrained checkpoints are not included in this repository. If released, download links will be provided here.
+Pretrained checkpoints are not included in this release. If pretrained models are released later, download instructions will be added here.
 
-```text
-checkpoints/
-  eth_ucy/
-  sdd/
-  nba/
-```
+## Third-Party Notes
 
-## Third-Party Code
+This repository focuses on the RAMP implementation. Full third-party baseline repositories such as AgentFormer, MID, and LED are not included. Please use their official releases if you need to reproduce external-baseline experiments.
 
-This repository focuses on the RAMP implementation. Third-party baselines such as AgentFormer, MID, and LED are not included as complete source trees. Please refer to their official repositories for the original implementations.
-
-Additional notes are provided in:
-
-```text
-docs/THIRD_PARTY.md
-```
+This codebase builds on the one-step trajectory forecasting pipeline and keeps the original MIT license notice. See `LICENSE` and `docs/THIRD_PARTY.md` for details.
 
 ## Citation
 
 If you find this repository useful, please cite:
 
 ```bibtex
-@article{wu2026ramp,
+@misc{wu2026ramp,
   title={Reliable One-Step Trajectory Forecasting With Missingness-Aware Uncertainty Under Partial Observation},
   author={Wu, Wenji and Wang, Zhuo},
-  journal={IEEE Transactions on Intelligent Transportation Systems},
   year={2026}
 }
 ```
 
+The citation entry will be updated after the paper is formally published.
+
 ## License
 
-This project is released under the MIT License. See `LICENSE` for details.
+This repository is released under the MIT License. See `LICENSE` for details.
 
-## Acknowledgements
+## Contact
 
-This implementation builds on the one-step trajectory forecasting pipeline and related public trajectory forecasting resources. We thank the authors of the original datasets and baseline methods for making their work available.
+For questions, please open an issue in this repository.
