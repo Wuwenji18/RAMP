@@ -474,7 +474,3 @@ The citation entry will be updated after the paper is formally published.
 ## License
 
 This repository is released under the MIT License. See `LICENSE` for details.
-
-## Contact
-
-For questions, please open an issue in this repository.
