@@ -462,11 +462,7 @@ This codebase builds on the one-step trajectory forecasting pipeline and keeps t
 If you find this repository useful, please cite:
 
 ```bibtex
-@misc{wu2026ramp,
-  title={Reliable One-Step Trajectory Forecasting With Missingness-Aware Uncertainty Under Partial Observation},
-  author={Wu, Wenji and Wang, Zhuo},
-  year={2026}
-}
+
 ```
 
 The citation entry will be updated after the paper is formally published.
