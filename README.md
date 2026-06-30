@@ -24,25 +24,10 @@ RAMP addresses this problem by improving the reliability of one-step multi-modal
 
 RAMP takes a partially observed trajectory history and its observation mask as input. A one-step forecasting backbone first generates multiple candidate future trajectories in parallel. A reliability-aware prediction module then ranks the generated modes and estimates state-wise uncertainty. Missingness cues extracted from the observation mask are injected into the uncertainty branch, enabling the model to adjust its confidence when the observed history is incomplete.
 
-<p align="center">
-  <img src="assets/ramp_overview.png" width="85%">
-</p>
-
-<p align="center">
-  <em>Overview of RAMP. The figure is a high-level illustration. Full implementation details will be released with the source code.</em>
-</p>
-
 ## Qualitative Illustration
 
 RAMP is designed to improve the reliability of the final selected trajectory, especially when part of the observed history is missing. The qualitative examples below illustrate typical cases where incomplete observations make final-mode selection more challenging.
 
-<p align="center">
-  <img src="assets/qualitative_teaser.png" width="85%">
-</p>
-
-<p align="center">
-  <em>Example qualitative comparison under complete and partially observed histories.</em>
-</p>
 
 ## Current Release Plan
 
